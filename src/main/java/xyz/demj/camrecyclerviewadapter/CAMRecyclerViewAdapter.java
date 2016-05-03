@@ -20,7 +20,7 @@ import java.util.List;
  *
  * @param <E> the element's type
  */
-public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAMRecyclerViewAdapter.CAMViewHolder<E>> {
+public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapter.CAMViewHolder<E>> extends RecyclerView.Adapter<VH> {
 
     private static final String ADAPTER_TAG = "CAMRecyclerViewAdapter";
     private static final String DEFAULT_ITEM_SELECT_STATE_CHANGED_MSG = "you see this, because you hasn't set onItemSelectStateChangedListener yet.";
@@ -70,7 +70,7 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      *
      * @param onItemSelectStateChangedListener
      */
-    protected void setOnItemSelectStateChangedListener(@Nullable OnItemSelectStateChangedListener onItemSelectStateChangedListener) {
+    public void setOnItemSelectStateChangedListener(@Nullable OnItemSelectStateChangedListener onItemSelectStateChangedListener) {
         if (onItemSelectStateChangedListener == null)
             mOnItemSelectStateChangedListener = NULL_ON_ITEM_SELECT_STATE_CHANGED_LISTENER;
         else
@@ -154,7 +154,7 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
         if (!validateInsertPosition(position))
             return;
         if (e != null) {
-            mElementList.add(e);
+            mElementList.add(position,e);
             if (notify) {
                 notifyItemInserted(mElementList.size());
             }
@@ -260,10 +260,10 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      * @param position
      */
     @Override
-    public final void onBindViewHolder(CAMViewHolder<E> holder, int position) {
+    public final void onBindViewHolder(VH holder, int position) {
         E e = mElementList.get(position);
         holder.mPositionTag = e;
-        realBindViewHolder(holder, position, getItemViewType(position));
+        realBindViewHolder(holder, position);
     }
 
     /**
@@ -801,11 +801,9 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      * or when action mode's CallBack's onCreateActionMode or onPrepareActionMode method.
      * call this let adapter into CAM.
      *
-     * @param listener        the {@link OnItemSelectStateChangedListener} instance used to listen item select state chang event.
      * @param triggerPosition the trigger start action mode item's position.
      */
-    public void attachToActionMode(OnItemSelectStateChangedListener listener, int triggerPosition) {
-        setOnItemSelectStateChangedListener(listener);
+    public void attachToActionMode(int triggerPosition) {
         mSelectedItems.clear();
         isInContentActionMode = true;
         if (validatePosition(triggerPosition)) {
@@ -830,8 +828,8 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      */
     /**/
     @Override
-    final public CAMViewHolder<E> onCreateViewHolder(ViewGroup parent, int viewType) {
-        CAMViewHolder<E> viewHolder = realCreateViewHolder(parent, viewType);
+    final public VH onCreateViewHolder(ViewGroup parent, int viewType) {
+        VH viewHolder = realCreateViewHolder(parent, viewType);
         if (viewHolder != null)
             viewHolder.mAdapter = this;
         return viewHolder;
@@ -863,9 +861,8 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      *
      * @param holder
      * @param position
-     * @param itemViewType
      */
-    protected abstract void realBindViewHolder(CAMViewHolder<E> holder, int position, int itemViewType);
+    protected abstract void realBindViewHolder(VH holder, int position);
 
     /**
      * the {@link CAMRecyclerViewAdapter} you create should implement,and return an not null instance.
@@ -875,7 +872,7 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      * @return a not null {@link CAMViewHolder<E>}.
      */
     @NonNull
-    protected abstract CAMViewHolder<E> realCreateViewHolder(ViewGroup parent, int viewType);
+    protected abstract VH realCreateViewHolder(ViewGroup parent, int viewType);
 
     /**
      * this method can override by child which told you want handle view click event,and before then
@@ -956,12 +953,12 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
      *
      * @param <E> the data's type.
      */
-    static class CAMViewHolder<E> extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+    public static class CAMViewHolder<E> extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
         private static final String TAG = "CAMViewHolder";
-        private final View mRootView;
-        private E mPositionTag;
-        private CAMRecyclerViewAdapter<E> mAdapter;
+        //private final View mRootView;
+        protected E mPositionTag;
+        protected CAMRecyclerViewAdapter<E, ? extends CAMViewHolder<E>> mAdapter;
         private boolean isClickable = true;
         private boolean isClickableInCAM = true;
         private boolean canTriggerCAM = true;
@@ -969,9 +966,9 @@ public abstract class CAMRecyclerViewAdapter<E> extends RecyclerView.Adapter<CAM
 
         public CAMViewHolder(View itemView) {
             super(itemView);
-            mRootView = itemView;
-            mRootView.setOnClickListener(this);
-            mRootView.setOnLongClickListener(this);
+            //mRootView = itemView;
+            itemView.setOnClickListener(this);
+            itemView.setOnLongClickListener(this);
         }
 
         /**
