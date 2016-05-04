@@ -40,7 +40,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
             " but you return true in shouldHandleClick method.";
     private static final SimpleHandleClickListener DEFAULT_HANDLE_CLICK_LISTENER = new SimpleHandleClickListener(DEFAULT_HANDLE_CLICK_MSG);
     private static final SimpleHandleClickListener NULL_HANDLE_CLICK_LISTENER = new SimpleHandleClickListener(NULL_LISTENER_HANDLE_CLICK_MSG);
-    private final List<E> mElementList;
+    final List<E> mElementList;
     private final ArrayMap<E, Boolean> mSelectedItems = new ArrayMap<>();
     private OnHandleClickListener mOnHandleClickListener = DEFAULT_HANDLE_CLICK_LISTENER;
     private OnItemSelectStateChangedListener mOnItemSelectStateChangedListener = DEFAULT_ON_ITEM_SELECT_STATE_CHANGED_LISTENER;
@@ -154,7 +154,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         if (!validateInsertPosition(position))
             return;
         if (e != null) {
-            mElementList.add(position,e);
+            mElementList.add(position, e);
             if (notify) {
                 notifyItemInserted(mElementList.size());
             }
@@ -955,14 +955,70 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      */
     public static class CAMViewHolder<E> extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
 
+        interface SetterListener {
+            /**
+             * let listener know the adapter  clickable state is changed.
+             *
+             * @param clickable
+             */
+            void listenSetClickable(boolean clickable);
+
+            /**
+             * let listener know the adapter clickable in CAM state is changed.
+             *
+             * @param clickableInCAM
+             */
+            void listenSetClickableInCAM(boolean clickableInCAM);
+
+            /**
+             * let listener know the adapter can trigger CAM state is changed.
+             *
+             * @param canTriggerCAM
+             */
+            void listenSetCanTriggerCAM(boolean canTriggerCAM);
+
+            /**
+             * let listener know the adapter long clickable state is changed.
+             *
+             * @param longClickable
+             */
+            void listenSetLongClickable(boolean longClickable);
+
+            /**
+             * let listener know what view will handle click alone.
+             *
+             * @param view the view will handle click event alone.
+             */
+            void listenAddHandleClickView(View view);
+
+            /**
+             * let listener handle click before adapter handle click event.
+             *
+             * @param view the clicked view.
+             * @return true has handle click event,adapter will not handle again.False adapter will handle the event.
+             */
+            boolean listenClick(View view);
+
+            /**
+             * let listener handle long click before adapter handle click event.
+             *
+             * @param view the long clicked view.
+             * @return true has handle long click event,adapter will not handle again.False adapter will handle the event.
+             */
+            boolean listenLongClick(View view);
+        }
+
+        SetterListener mSetterListener = null;
         private static final String TAG = "CAMViewHolder";
         //private final View mRootView;
-        protected E mPositionTag;
-        protected CAMRecyclerViewAdapter<E, ? extends CAMViewHolder<E>> mAdapter;
-        private boolean isClickable = true;
-        private boolean isClickableInCAM = true;
-        private boolean canTriggerCAM = true;
-        private boolean isLongClickable = true;
+        E mPositionTag;
+
+
+        CAMRecyclerViewAdapter<E, ? extends CAMViewHolder<E>> mAdapter;
+        boolean isClickable = true;
+        boolean isClickableInCAM = true;
+        boolean isCanTriggerCAM = true;
+        boolean isLongClickable = true;
 
         public CAMViewHolder(View itemView) {
             super(itemView);
@@ -971,14 +1027,18 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
             itemView.setOnLongClickListener(this);
         }
 
+
         /**
          * this is used to handle click event alone.
          *
          * @param view
          */
         public void addHandleClickView(View view) {
-            if (view != null)
+            if (view != null) {
                 view.setOnClickListener(this);
+                if (mSetterListener != null)
+                    mSetterListener.listenAddHandleClickView(view);
+            }
         }
 
         /**
@@ -990,7 +1050,93 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         public void onClick(View v) {
             if (!isClickable)
                 return;
+            if (mSetterListener != null) {
+                if (mSetterListener.listenClick(v))
+                    return;
+            }
             int position = mAdapter.mElementList.indexOf(mPositionTag);
+            internalClick(v, position);
+        }
+
+        /**
+         * set this ViewHolder's rootView can click when {@link CAMRecyclerViewAdapter} is attach to CAM.
+         *
+         * @param clickableInCAM can or not.
+         */
+        public void setClickableInCAM(boolean clickableInCAM) {
+            isClickableInCAM = clickableInCAM;
+            if (mSetterListener != null)
+                mSetterListener.listenSetClickableInCAM(clickableInCAM);
+        }
+
+        /**
+         * set this ViewHolder's rootView can trigger CAM.
+         *
+         * @param canTriggerCAM can or not.
+         */
+        public void setCanTriggerCAM(boolean canTriggerCAM) {
+            this.isCanTriggerCAM = canTriggerCAM;
+            if (mSetterListener != null)
+                mSetterListener.listenSetCanTriggerCAM(canTriggerCAM);
+        }
+
+        /**
+         * set this ViewHolder's rootView can handle long click event.
+         *
+         * @param longClickable can or not.
+         */
+        public void setLongClickable(boolean longClickable) {
+            this.isLongClickable = longClickable;
+            if (mSetterListener != null)
+                mSetterListener.listenSetLongClickable(longClickable);
+        }
+
+        /**
+         * set this ViewHolder's root can handle click event.
+         *
+         * @param clickable can or not.
+         */
+        public void setClickable(boolean clickable) {
+            this.isClickable = clickable;
+            if (mSetterListener != null)
+                mSetterListener.listenSetClickable(clickable);
+        }
+
+        /**
+         * handle view's long click event
+         *
+         * @param v the long clicked view.
+         */
+        @Override
+        public boolean onLongClick(View v) {
+
+            if (!isClickable ||
+                    !isLongClickable ||
+                    !isCanTriggerCAM)
+                return false;
+            if (mSetterListener != null) {
+                if (mSetterListener.listenLongClick(v))
+                    return false;
+            }
+
+            int position = mAdapter.mElementList.indexOf(mPositionTag);
+
+            return internalLongClick(v, position);
+        }
+
+        boolean internalLongClick(View v, int position) {
+            if (position < 0) {
+                Log.w(TAG, "position < 0 while handle view long click,the long  click event will ignored");
+                return false;
+            }
+            if (!mAdapter.isInContentActionMode) {
+                mAdapter.mOnItemLongClickListener.onItemLongClick(v, position);
+                Log.w(TAG, "long click event is handled in position " + position);
+            }
+            return true;
+        }
+
+        void internalClick(View v, int position) {
             if (position < 0) {
                 Log.w(TAG, "position < 0 while handle view click,the click event will ignored");
                 return;
@@ -1010,68 +1156,8 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                 }
             }
         }
-
-        /**
-         * set this ViewHolder's rootView can click when {@link CAMRecyclerViewAdapter} is attach to CAM.
-         *
-         * @param clickableInCAM can or not.
-         */
-        public void setClickableInCAM(boolean clickableInCAM) {
-            isClickableInCAM = clickableInCAM;
-        }
-
-        /**
-         * set this ViewHolder's rootView can trigger CAM.
-         *
-         * @param canTriggerCAM can or not.
-         */
-        public void setCanTriggerCAM(boolean canTriggerCAM) {
-            this.canTriggerCAM = canTriggerCAM;
-        }
-
-        /**
-         * set this ViewHolder's rootView can handle long click event.
-         *
-         * @param longClickable can or not.
-         */
-        public void setLongClickable(boolean longClickable) {
-            isLongClickable = longClickable;
-        }
-
-        /**
-         * set this ViewHolder's root can handle click event.
-         *
-         * @param clickable can or not.
-         */
-        public void setClickable(boolean clickable) {
-            isClickable = clickable;
-        }
-
-        /**
-         * handle view's long click event
-         *
-         * @param v the long clicked view.
-         */
-        @Override
-        public boolean onLongClick(View v) {
-
-            if (!isClickable ||
-                    !isLongClickable ||
-                    !canTriggerCAM)
-                return false;
-
-            int position = mAdapter.mElementList.indexOf(mPositionTag);
-            if (position < 0) {
-                Log.w(TAG, "position < 0 while handle view long click,the long  click event will ignored");
-                return false;
-            }
-            if (!mAdapter.isInContentActionMode) {
-                mAdapter.mOnItemLongClickListener.onItemLongClick(v, position);
-                Log.w(TAG, "long click event is handled in position " + position);
-            }
-            return true;
-        }
     }
+
 
     private static class SimpleOnItemSelectStateChangedListener implements OnItemSelectStateChangedListener {
         private final String mString;

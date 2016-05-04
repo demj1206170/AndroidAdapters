@@ -29,10 +29,16 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
             return ConverterAdapter.this.getItemViewType(position);
         }
 
+        @Override
+        protected boolean shouldHandleClick(View view, int position) {
+            return ConverterAdapter.this.shouldHandleClick(view,position);
+        }
+
         @NonNull
         @Override
         protected ConverterViewHolder<E, T> realCreateViewHolder(ViewGroup parent, int viewType) {
             CAMViewHolder<E> oriViewHolder = ConverterAdapter.this.realCreateViewHolder(parent, viewType);
+
             return new ConverterViewHolder<>(oriViewHolder);
         }
     };
@@ -54,13 +60,104 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
     }
 
 
-    static class ConverterViewHolder<E, T> extends CAMRecyclerViewAdapter.CAMViewHolder<T> {
+    static class ConverterViewHolder<E, T> extends CAMRecyclerViewAdapter.CAMViewHolder<T> implements CAMViewHolder.SetterListener {
 
         private CAMViewHolder<E> mOriViewHolder;
 
         public ConverterViewHolder(CAMViewHolder<E> oriViewHolder) {
             super(oriViewHolder.itemView);
             mOriViewHolder = oriViewHolder;
+            mOriViewHolder.mSetterListener = this;
+            isClickable = mOriViewHolder.isClickable;
+            isClickableInCAM = mOriViewHolder.isClickableInCAM;
+            isLongClickable = mOriViewHolder.isLongClickable;
+            isCanTriggerCAM = mOriViewHolder.isCanTriggerCAM;
+
+
+        }
+
+        @Override
+        public void onClick(View v) {
+            super.onClick(v);
+
+        }
+
+        public ConverterViewHolder(View itemView) {
+            super(itemView);
+        }
+
+        @Override
+        public void addHandleClickView(View view) {
+            mOriViewHolder.addHandleClickView(view);
+        }
+
+        @Override
+        public void setClickableInCAM(boolean clickableInCAM) {
+            mOriViewHolder.setClickableInCAM(clickableInCAM);
+        }
+
+        @Override
+        public void setLongClickable(boolean longClickable) {
+            mOriViewHolder.setLongClickable(longClickable);
+        }
+
+        @Override
+        public void setClickable(boolean clickable) {
+            mOriViewHolder.setClickable(clickable);
+        }
+
+//        @Override
+//        public boolean onLongClick(View v) {
+//            return mOriViewHolder.onLongClick(v);
+//        }
+//
+//        @Override
+//        public void onClick(View v) {
+//            mOriViewHolder.onClick(v);
+//        }
+
+        @Override
+        public void setCanTriggerCAM(boolean canTriggerCAM) {
+            mOriViewHolder.setCanTriggerCAM(canTriggerCAM);
+        }
+
+
+        @Override
+        public void listenSetClickable(boolean clickable) {
+            isClickable = clickable;
+        }
+
+        @Override
+        public void listenSetClickableInCAM(boolean clickableInCAM) {
+            isClickableInCAM = clickableInCAM;
+        }
+
+        @Override
+        public void listenSetCanTriggerCAM(boolean canTriggerCAM) {
+            this.isCanTriggerCAM = canTriggerCAM;
+        }
+
+        @Override
+        public void listenSetLongClickable(boolean longClickable) {
+            this.isLongClickable = longClickable;
+        }
+
+        @Override
+        public void listenAddHandleClickView(View view) {
+            addHandleClickView(view);
+        }
+
+        @Override
+        public boolean listenClick(View view) {
+            int position=mAdapter.mElementList.indexOf(mPositionTag);
+            internalClick(view,position);
+            return true;
+        }
+
+        @Override
+        public boolean listenLongClick(View view) {
+            this.onLongClick(view);
+            return true;
         }
     }
 
@@ -170,7 +267,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      * @param position the insert position.
      */
     public void add(E e, int position) {
-            mAdapter.add(e.to(), position);
+        mAdapter.add(e.to(), position);
     }
 
     protected CAMRecyclerViewAdapter getAdapter() {
@@ -636,7 +733,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      *
      * @param triggerPosition the trigger start action mode item's position.
      */
-    public void attachToActionMode( int triggerPosition) {
+    public void attachToActionMode(int triggerPosition) {
         mAdapter.attachToActionMode(triggerPosition);
     }
 

@@ -172,6 +172,8 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
 
         public HeaderFooterViewHolder(View itemView) {
             super(itemView);
+            setClickable(false);
+            setLongClickable(false);
         }
     }
 
@@ -181,6 +183,8 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         public DividerViewHolder(View itemView) {
             super(itemView);
             rootView = itemView;
+            setClickable(false);
+            setLongClickable(false);
         }
     }
 
@@ -190,6 +194,8 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         public TipperViewHolder(View itemView) {
             super(itemView);
             mTextView = (TextView) itemView;
+            setClickable(false);
+            setLongClickable(false);
         }
     }
 
