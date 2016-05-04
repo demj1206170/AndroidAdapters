@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -41,7 +42,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     private static final SimpleHandleClickListener DEFAULT_HANDLE_CLICK_LISTENER = new SimpleHandleClickListener(DEFAULT_HANDLE_CLICK_MSG);
     private static final SimpleHandleClickListener NULL_HANDLE_CLICK_LISTENER = new SimpleHandleClickListener(NULL_LISTENER_HANDLE_CLICK_MSG);
     final List<E> mElementList;
-    private final ArrayMap<E, Boolean> mSelectedItems = new ArrayMap<>();
+    final ArrayMap<E, Boolean> mSelectedItems = new ArrayMap<>();
     private OnHandleClickListener mOnHandleClickListener = DEFAULT_HANDLE_CLICK_LISTENER;
     private OnItemSelectStateChangedListener mOnItemSelectStateChangedListener = DEFAULT_ON_ITEM_SELECT_STATE_CHANGED_LISTENER;
     private OnItemClickListener mOnItemClickListener = DEFAULT_ON_ITEM_CLICK_LISTENER;
@@ -180,9 +181,15 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      *                   in the other thread except main thread, you should always set this is false.
      */
     public void addAll(Collection<E> collection, boolean notify) {
+        addAll(collection, -1, notify);
+    }
+
+    public void addAll(Collection<E> collection, int startPos, boolean notify) {
         collection = filterElements(collection);
         int preSize = mElementList.size();
-        mElementList.addAll(collection);
+        startPos = startPos > preSize ? preSize : startPos;
+        startPos = startPos <= -1 ? preSize : startPos;
+        mElementList.addAll(startPos, collection);
         if (notify) {
             notifyItemRangeInserted(preSize, collection.size());
         }
@@ -206,10 +213,14 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     public void remove(int position, boolean notify) {
         if (!validatePosition(position))
             return;
-        mElementList.remove(position);
+        E e = mElementList.remove(position);
+        if (isInContentActionMode) {
+            setItemSelection(position, false, true);
+        }
         if (notify) {
             notifyItemRemoved(position);
         }
+
     }
 
     /**
@@ -230,9 +241,12 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     public void removeAll(boolean notify) {
         int size = mElementList.size();
         mElementList.clear();
+        if (isInContentActionMode)
+            clearSelection(notify);
         if (notify) {
             notifyItemRangeRemoved(0, size);
         }
+
     }
 
     /**
@@ -397,6 +411,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         addItems(elements, 0, true);
     }
 
+
     /**
      * remove items from internal list by collection hold element.
      *
@@ -413,9 +428,13 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
             if (position == -1)
                 continue;
             mElementList.remove(e);
+            if (isInContentActionMode) {
+                mSelectedItems.remove(e);
+            }
             if (notify && !notifyAfterAllRemoved) {
                 notifyItemRemoved(position);
             }
+
         }
         if (notify && notifyAfterAllRemoved)
             notifyDataSetChanged();
@@ -459,9 +478,13 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                 if (position == -1)
                     continue;
                 mElementList.remove(e);
+                if (isInContentActionMode) {
+                    mSelectedItems.remove(e);
+                }
                 if (notify && !notifyAfterAllRemoved) {
                     notifyItemRemoved(position);
                 }
+
             }
             if (notify && notifyAfterAllRemoved)
                 notifyDataSetChanged();
@@ -511,9 +534,13 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         for (E e : arrayList) {
             int position = mElementList.indexOf(e);
             mElementList.remove(e);
+            if (isInContentActionMode) {
+                mSelectedItems.remove(e);
+            }
             if (notify && !notifyAfterAllRemoved) {
                 notifyItemRemoved(position);
             }
+
         }
         if (notify && notifyAfterAllRemoved) {
             notifyDataSetChanged();
@@ -622,7 +649,9 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     public void setItemSelection(int position, boolean selected, boolean notify) {
         E e = mElementList.get(position);
         if (e != null) {
-            mSelectedItems.put(e, selected);
+            if (selected)
+                mSelectedItems.put(e, selected);
+            else mSelectedItems.remove(e);
             if (notify)
                 notifyItemChanged(position);
             mOnItemSelectStateChangedListener.onItemCheckStateChanged(position, selected);
@@ -747,8 +776,14 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         ArrayList<Integer> selectedPositions = getSelectedItemPositions();
         int size = selectedPositions.size();
         ArrayList<E> selectedItems = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            selectedItems.add(mElementList.get(selectedPositions.get(i)));
+//        for (int i = 0; i < size; i++) {
+//            if()
+//            selectedItems.add(mElementList.get(selectedPositions.get(i)));
+//        }
+        for (int i : selectedPositions) {
+            if (i == -1)
+                continue;
+            selectedItems.add(mElementList.get(i));
         }
         return selectedItems;
     }
@@ -897,6 +932,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     public E get(int position) {
         return mElementList.get(position);
     }
+
 
     /**
      * this is used to handle view click event alone.

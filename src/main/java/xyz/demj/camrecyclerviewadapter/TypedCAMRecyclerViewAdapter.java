@@ -54,6 +54,25 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
 
     }
 
+    public int getUsefulItemCount() {
+        int size = 0;
+        for (Typed<E> typed : mAdapter.mElementList) {
+            if (typed.type == Typed.TYPE_ITEM) {
+                size++;
+            }
+        }
+        return size;
+    }
+
+    public int getUsefulSelectedItemCount() {
+        int size = 0;
+        for (Typed<E> typed : mAdapter.mSelectedItems.keySet()) {
+            if (typed.type == Typed.TYPE_ITEM)
+                size++;
+        }
+        return size;
+    }
+
 
     @Override
     protected void realBindViewHolder(CAMRecyclerViewAdapter.CAMViewHolder<E> holder, int position) {
@@ -116,7 +135,7 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         if (tip != null) {
             Typed<E> e = new Typed<>(null, Typed.TYPE_TIPPER);
             e.mTipString = tip;
-            mAdapter.add(e,position);
+            mAdapter.add(e, position);
             tipCount++;
         }
     }
@@ -173,7 +192,6 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         public HeaderFooterViewHolder(View itemView) {
             super(itemView);
             setClickable(false);
-            setLongClickable(false);
         }
     }
 
@@ -184,7 +202,6 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
             super(itemView);
             rootView = itemView;
             setClickable(false);
-            setLongClickable(false);
         }
     }
 
@@ -195,7 +212,6 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
             super(itemView);
             mTextView = (TextView) itemView;
             setClickable(false);
-            setLongClickable(false);
         }
     }
 

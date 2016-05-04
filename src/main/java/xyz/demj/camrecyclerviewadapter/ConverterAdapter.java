@@ -31,7 +31,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
 
         @Override
         protected boolean shouldHandleClick(View view, int position) {
-            return ConverterAdapter.this.shouldHandleClick(view,position);
+            return ConverterAdapter.this.shouldHandleClick(view, position);
         }
 
         @NonNull
@@ -51,12 +51,16 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
 
     protected abstract void realBindViewHolder(CAMViewHolder<E> holder, int position);
 
-    public void notifyItemInserted(int po) {
-        mAdapter.notifyItemInserted(po);
+    public void notifyItemInserted(int position) {
+        mAdapter.notifyItemInserted(position);
     }
 
     public void setUpWithRecyclerView(RecyclerView recyclerView) {
         recyclerView.setAdapter(mAdapter);
+    }
+
+    public int getPosition(E e) {
+        return mAdapter.mElementList.indexOf(e.to());
     }
 
 
@@ -149,8 +153,8 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
 
         @Override
         public boolean listenClick(View view) {
-            int position=mAdapter.mElementList.indexOf(mPositionTag);
-            internalClick(view,position);
+            int position = mAdapter.mElementList.indexOf(mPositionTag);
+            internalClick(view, position);
             return true;
         }
 
@@ -382,15 +386,15 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      * @param elements the array want to filter.
      * @return new filtered without null element array,or null if pass a null elements.
      */
-    private T[] filterElements(E[] elements) {
+    private ArrayList<T> filterElements(E[] elements) {
         if (elements == null)
             return null;
-        List<T> arrayList = new ArrayList<>(elements.length);
+        ArrayList<T> arrayList = new ArrayList<>(elements.length);
         for (E element : elements) {
             if (element != null)
                 arrayList.add(element.to());
         }
-        return (T[]) arrayList.toArray();
+        return arrayList;
     }
 
     /**
@@ -422,7 +426,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      *                 in the other thread except main thread, you should always set this is false.
      */
     public void addItems(E[] elements, int startPos, boolean notify) {
-        mAdapter.addItems(filterElements(elements), startPos, notify);
+        mAdapter.addAll(filterElements(elements), startPos, notify);
     }
 
     /**
@@ -432,7 +436,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      * @param startPos insert start position.
      */
     public void addItems(E[] elements, int startPos) {
-        mAdapter.addItems(filterElements(elements), startPos, true);
+        mAdapter.addAll(filterElements(elements), startPos, true);
     }
 
     /**
@@ -444,7 +448,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      *                 in the other thread except main thread, you should always set this is false.
      */
     public void addItems(E[] elements, boolean notify) {
-        mAdapter.addItems(filterElements(elements), 0, notify);
+        mAdapter.addAll(filterElements(elements), 0, notify);
     }
 
     /**
@@ -453,7 +457,7 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      * @param elements the array that contain E's elements.
      */
     public void addItems(E[] elements) {
-        mAdapter.addItems(filterElements(elements), 0, true);
+        mAdapter.addAll(filterElements(elements), 0, true);
     }
 
     /**
