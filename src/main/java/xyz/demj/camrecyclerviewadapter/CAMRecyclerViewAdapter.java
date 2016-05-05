@@ -215,13 +215,21 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
             return;
         E e = mElementList.remove(position);
         if (isInContentActionMode) {
-            setItemSelection(position, false, true);
+            internalSetItemSelection(e, position, false, true);
         }
         if (notify) {
             notifyItemRemoved(position);
         }
-
     }
+
+    void internalSetItemSelection(E e, int position, boolean selected, boolean notify) {
+        if (selected)
+            mSelectedItems.put(e, selected);
+        else mSelectedItems.remove(e);
+        if (notify)
+            mOnItemSelectStateChangedListener.onItemCheckStateChanged(position, selected);
+    }
+
 
     /**
      * @param position the element' position you want removed.
@@ -429,15 +437,19 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                 continue;
             mElementList.remove(e);
             if (isInContentActionMode) {
-                mSelectedItems.remove(e);
+                internalSetItemSelection(e, position, false, false);
             }
             if (notify && !notifyAfterAllRemoved) {
                 notifyItemRemoved(position);
             }
 
         }
-        if (notify && notifyAfterAllRemoved)
-            notifyDataSetChanged();
+        if (notify) {
+            notifyItemCheckedRangeStateChanged(null, null, false);
+            if (notifyAfterAllRemoved) {
+                notifyDataSetChanged();
+            }
+        }
     }
 
     /**
@@ -479,15 +491,20 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                     continue;
                 mElementList.remove(e);
                 if (isInContentActionMode) {
-                    mSelectedItems.remove(e);
+                    internalSetItemSelection(e, position, false, false);
                 }
                 if (notify && !notifyAfterAllRemoved) {
                     notifyItemRemoved(position);
                 }
 
             }
-            if (notify && notifyAfterAllRemoved)
-                notifyDataSetChanged();
+            if (notify) {
+                notifyItemCheckedRangeStateChanged(null, null, false);
+                if (notifyAfterAllRemoved) {
+                    notifyDataSetChanged();
+                }
+            }
+
         }
     }
 
@@ -522,28 +539,12 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      * @param notifyAfterAllRemoved whether or not after remove all specify elements then notify DataObserver.
      */
     public void removeItemsByPosition(int[] positions, boolean notify, boolean notifyAfterAllRemoved) {
-        if (positions == null)
-            return;
-        ArrayList<E> arrayList = new ArrayList<>(positions.length);
-        for (int i : positions) {
-            if (!validatePosition(i))
-                continue;
-            E e = mElementList.get(i);
-            arrayList.add(e);
-        }
-        for (E e : arrayList) {
-            int position = mElementList.indexOf(e);
-            mElementList.remove(e);
-            if (isInContentActionMode) {
-                mSelectedItems.remove(e);
+        if (positions != null) {
+            ArrayList<Integer> list = new ArrayList<>(positions.length);
+            for (int i : positions) {
+                list.add(i);
             }
-            if (notify && !notifyAfterAllRemoved) {
-                notifyItemRemoved(position);
-            }
-
-        }
-        if (notify && notifyAfterAllRemoved) {
-            notifyDataSetChanged();
+            removeItemsByPosition(list, notify, notifyAfterAllRemoved);
         }
     }
 
@@ -578,13 +579,31 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      * @param notifyAfterAllRemoved whether or not after remove all specify elements then notify DataObserver.
      */
     public void removeItemsByPosition(Collection<Integer> positions, boolean notify, boolean notifyAfterAllRemoved) {
-        if (positions != null) {
-            ArrayList<Integer> list = new ArrayList<>(positions);
-            Integer[] integers = new Integer[list.size()];
-            list.toArray(integers);
-            int[] pos = new int[integers.length];
-            System.arraycopy(integers, 0, pos, 0, integers.length);
-            removeItemsByPosition(pos, notify, notifyAfterAllRemoved);
+        if (positions == null)
+            return;
+        ArrayList<E> arrayList = new ArrayList<>(positions.size());
+        for (int i : positions) {
+            if (!validatePosition(i))
+                continue;
+            E e = mElementList.get(i);
+            arrayList.add(e);
+        }
+        for (E e : arrayList) {
+            int position = mElementList.indexOf(e);
+            mElementList.remove(e);
+            if (isInContentActionMode) {
+                mSelectedItems.remove(e);
+            }
+            if (notify && !notifyAfterAllRemoved) {
+                notifyItemRemoved(position);
+            }
+
+        }
+        if (notify) {
+            notifyItemCheckedRangeStateChanged(null, null, false);
+            if (notifyAfterAllRemoved) {
+                notifyDataSetChanged();
+            }
         }
     }
 
