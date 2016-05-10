@@ -1,9 +1,16 @@
 package xyz.demj.camrecyclerviewadapter;
 
+import android.animation.TypeEvaluator;
+import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Created by demj on 2016/5/3 0003.
@@ -21,6 +28,29 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
     private int dividerCount = 0;
     private int tipCount = 0;
     private int itemCount = 0;
+
+    @Override
+    public List<E> getAllElement() {
+        return getAllElement(null);
+    }
+
+    public List<E> getAllElement(TypeFilter<Typed<? extends E>> filter) {
+        if (filter == null)
+            return super.getAllElement();
+        List<E> filterList = new ArrayList<>(mAdapter.mElementList.size());
+        for (Typed<E> typed : mAdapter.mElementList) {
+            if (typed != null && filter.filter(typed)) {
+                filterList.add(typed.e);
+            }
+        }
+        return filterList;
+    }
+
+
+
+    public interface TypeFilter<E> {
+        boolean filter(E element);
+    }
 
     @Override
     protected CAMRecyclerViewAdapter.CAMViewHolder<E> realCreateViewHolder(ViewGroup parent, int viewType) {
@@ -62,6 +92,16 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
             }
         }
         return size;
+    }
+
+    public List<E> getUsefulSelectedItems() {
+        List<E> itemList = new ArrayList<>();
+        for (Typed<E> typed : mAdapter.getSelectedItems()) {
+            if (typed.type == Typed.TYPE_ITEM) {
+                itemList.add(typed.e);
+            }
+        }
+        return itemList;
     }
 
     public int getUsefulSelectedItemCount() {
@@ -120,29 +160,64 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         return mAdapter.get(position).type;
     }
 
-
-    public void addFooter(E e) {
+    public Typed<E> addFooter(E e) {
         footerCount++;
-        addTypedItem(e, Typed.TYPE_FOOTER, getItemCount());
+        return addTypedItem(e, Typed.TYPE_FOOTER, getItemCount());
     }
 
-    public void addDivider(E e, int position) {
+    public void removeTyped(Typed<E> typed, boolean notify) {
+        int position = mAdapter.mElementList.indexOf(typed);
+        if (position != -1) {
+            mAdapter.mElementList.remove(position);
+            if (notify)
+                mAdapter.notifyItemRemoved(position);
+        }
+    }
+
+    public int getSpecificTypeCount(TypeFilter<Typed<E>> filter) {
+        if (filter == null)
+            return mAdapter.mElementList.size();
+        int size = 0;
+        for (Typed<E> typed : mAdapter.mElementList) {
+            if (typed != null && filter.filter(typed)) {
+                size++;
+            }
+        }
+        return size;
+    }
+
+    public Typed<E> addDivider(E e, int position) {
         dividerCount++;
-        addTypedItem(e, Typed.TYPE_DIVIDER, position);
+        return addTypedItem(e, Typed.TYPE_DIVIDER, position);
     }
 
-    public void addTipper(String tip, int position) {
+    public int getTypedPosition(Typed<E> typed) {
+        return mAdapter.mElementList.indexOf(typed);
+    }
+
+    @Nullable
+    public Typed<E> addTipper(String tip, int position) {
+        Typed<E> e = null;
         if (tip != null) {
-            Typed<E> e = new Typed<>(null, Typed.TYPE_TIPPER);
+            if (position < 0 || position > mAdapter.mElementList.size())
+                position = mAdapter.mElementList.size();
+            e = new Typed<>(null, Typed.TYPE_TIPPER);
             e.mTipString = tip;
             mAdapter.add(e, position);
             tipCount++;
         }
+        return e;
     }
 
     public void addHeader(E e) {
 
         addTypedItem(e, Typed.TYPE_HEADER, headerCount++);
+    }
+
+
+    @Override
+    public int getItemCount() {
+        return super.getItemCount();
     }
 
     public void addItem(E e, int position) {
@@ -152,9 +227,12 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         }
     }
 
-    private void addTypedItem(E e, int type, int position) {
-        e.to().type = type;
-        mAdapter.add(e.to(), position);
+    private Typed<E> addTypedItem(E e, int type, int position) {
+        Typed<E> typed = new Typed<>(e, type);
+        //  e.to().type = type;
+        mAdapter.add(typed, position);
+//        mAdapter.add(e.to(), position);
+        return typed;
     }
 
     public static class Typed<E> implements ConverterAdapter.To<E> {
@@ -167,6 +245,7 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         private static final int NO_RES_ID = -2;
         public int type;
         public E e;
+        int specificTypePosition;
         private String mTipString;
         private int resId = DEFAULT_RES_ID;
 

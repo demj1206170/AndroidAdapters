@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -329,6 +330,53 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                 notifyItemChanged(position);
             }
         }
+    }
+
+    /**
+     * replace the specify element with new element.
+     *
+     * @param e          the new element.
+     * @param comparator the comparator used for specify whether the item which will replaced.
+     *                   if compareTo return 0 then replaced this item by new e.
+     * @param notify     notify whether or not notify DataObserver such as RecyclerView
+     *                   to handle data set changed event.Note, if you add element
+     *                   in the other thread except main thread, you should always set this is false.
+     * @return if e is null then will return null and do nothing.
+     * if comparator is null then will return the e.
+     * if haven't element meet compareTo condition will return null.
+     * if old element is replaced,will return old element.
+     */
+    @Nullable
+    public E set(E e, Comparator<E> comparator, boolean notify) {
+        if (e == null)
+            return null;
+        if (comparator == null)
+            return e;
+        int size = mElementList.size();
+        E old = null;
+        for (int i = 0; i < size; i++) {
+            old = mElementList.get(i);
+            if (comparator.compare(e, old) == 0) {
+                old = mElementList.set(i, e);
+                if (notify) {
+                    notifyItemChanged(i);
+                }
+                break;
+            }
+            old = null;
+        }
+        return old;
+    }
+
+    /**
+     * replace the specify element with new element.
+     *
+     * @param e          the new element.
+     * @param comparator the comparator used for specify whether the item which will replaced.
+     *                   if compareTo return 0 then replaced this item by new e.
+     */
+    public E set(E e, Comparator<E> comparator) {
+        return set(e, comparator, true);
     }
 
     /**
@@ -1002,6 +1050,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
          */
         void onItemsCheckStateChanged(int[] positions, boolean[] states);
     }
+
 
     /**
      * the ViewHolder extends {@link android.support.v7.widget.RecyclerView.ViewHolder}

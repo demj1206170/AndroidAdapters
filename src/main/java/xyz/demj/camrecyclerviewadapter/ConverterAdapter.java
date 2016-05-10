@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import xyz.demj.camrecyclerviewadapter.CAMRecyclerViewAdapter.CAMViewHolder;
@@ -43,6 +44,42 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
         }
     };
 
+    public List<E> getAllElement() {
+        ArrayList<E> element = new ArrayList<>(mAdapter.mElementList.size());
+        for (T t : mAdapter.mElementList) {
+            if (t != null)
+                element.add(t.to());
+        }
+        return element;
+    }
+
+    private static class ConvertComparator<E extends To<T>, T extends To<E>> implements Comparator<T> {
+        private Comparator<E> mToComparator;
+
+        public ConvertComparator(Comparator<E> comparator) {
+            mToComparator = comparator;
+        }
+
+        @Override
+        public int compare(T lhs, T rhs) {
+            return mToComparator.compare(lhs.to(), rhs.to());
+        }
+    }
+
+    @Nullable
+    public E set(E e, Comparator<E> comparator, boolean notify) {
+        if (e == null)
+            return null;
+        T t = mAdapter.set(e.to(), new ConvertComparator<>(comparator), notify);
+        return t == null ? null : t.to();
+    }
+
+    @Nullable
+    public E set(E e, Comparator<E> comparator) {
+        return set(e, comparator, true);
+    }
+
+
     protected int getItemViewType(int position) {
         return position;
     }
@@ -62,7 +99,10 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
     public int getPosition(E e) {
         return mAdapter.mElementList.indexOf(e.to());
     }
-
+    public  void notifyDataSetChanged()
+    {
+        mAdapter.notifyDataSetChanged();
+    }
 
     static class ConverterViewHolder<E, T> extends CAMRecyclerViewAdapter.CAMViewHolder<T> implements CAMViewHolder.SetterListener {
 
@@ -703,7 +743,6 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
      * @return all selected item.
      */
     public ArrayList<E> getSelectedItems() {
-
         ArrayList<T> selected = mAdapter.getSelectedItems();
         ArrayList<E> arrayList = new ArrayList<>(selected.size());
         for (T t : selected) {
