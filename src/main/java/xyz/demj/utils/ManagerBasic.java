@@ -31,11 +31,12 @@ public abstract class ManagerBasic<K, V> {
 
 
     protected static class Operation<K, V> {
-       public int action;
-       public boolean isError;
-       public Map<K, V> elements = Collections.emptyMap();
-        public Operation()
-        {}
+        public int action;
+        public boolean isError;
+        public Map<K, V> elements = Collections.emptyMap();
+
+        public Operation() {
+        }
     }
 
     private Action1<Operation<K, V>> mOperationAction = new Action1<Operation<K, V>>() {
