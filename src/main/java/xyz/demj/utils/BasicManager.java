@@ -18,7 +18,7 @@ import rx.subjects.PublishSubject;
  * Created by demj on 2016/5/14 0014.
  * Author: demj
  */
-public abstract class ManagerBasic<K, V> {
+public abstract class BasicManager<K, V> {
     public static final int ACTION_ADD = 1;
     public static final int ACTION_DELETE = 2;
     public static final int ACTION_UPDATE = 3;
@@ -36,6 +36,10 @@ public abstract class ManagerBasic<K, V> {
         public Map<K, V> elements = Collections.emptyMap();
 
         public Operation() {
+        }
+
+        public Operation(int action) {
+            this.action = action;
         }
     }
 
