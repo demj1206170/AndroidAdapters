@@ -99,8 +99,8 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
     public int getPosition(E e) {
         return mAdapter.mElementList.indexOf(e.to());
     }
-    public  void notifyDataSetChanged()
-    {
+
+    public void notifyDataSetChanged() {
         mAdapter.notifyDataSetChanged();
     }
 
@@ -193,7 +193,8 @@ public abstract class ConverterAdapter<E extends ConverterAdapter.To<T>, T exten
 
         @Override
         public boolean listenClick(View view) {
-            int position = mAdapter.mElementList.indexOf(mPositionTag);
+//            int position = mAdapter.mElementList.indexOf(mPositionTag);
+            int position = getAdapterPosition();
             internalClick(view, position);
             return true;
         }

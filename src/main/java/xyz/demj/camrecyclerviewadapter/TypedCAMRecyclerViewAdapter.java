@@ -1,16 +1,15 @@
 package xyz.demj.camrecyclerviewadapter;
 
-import android.animation.TypeEvaluator;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+
+import xyz.demj.smartacp.R;
 
 /**
  * Created by demj on 2016/5/3 0003.
@@ -45,7 +44,6 @@ public abstract class TypedCAMRecyclerViewAdapter<E extends ConverterAdapter.To<
         }
         return filterList;
     }
-
 
 
     public interface TypeFilter<E> {

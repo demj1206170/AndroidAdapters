@@ -9,7 +9,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -42,7 +41,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
             " but you return true in shouldHandleClick method.";
     private static final SimpleHandleClickListener DEFAULT_HANDLE_CLICK_LISTENER = new SimpleHandleClickListener(DEFAULT_HANDLE_CLICK_MSG);
     private static final SimpleHandleClickListener NULL_HANDLE_CLICK_LISTENER = new SimpleHandleClickListener(NULL_LISTENER_HANDLE_CLICK_MSG);
-    final List<E> mElementList;
+    protected final List<E> mElementList;
     final ArrayMap<E, Boolean> mSelectedItems = new ArrayMap<>();
     private OnHandleClickListener mOnHandleClickListener = DEFAULT_HANDLE_CLICK_LISTENER;
     private OnItemSelectStateChangedListener mOnItemSelectStateChangedListener = DEFAULT_ON_ITEM_SELECT_STATE_CHANGED_LISTENER;
@@ -181,11 +180,11 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      *                   to handle data set changed event.Note, if you add element
      *                   in the other thread except main thread, you should always set this is false.
      */
-    public void addAll(Collection<E> collection, boolean notify) {
+    public void addAll(Collection<? extends E> collection, boolean notify) {
         addAll(collection, -1, notify);
     }
 
-    public void addAll(Collection<E> collection, int startPos, boolean notify) {
+    public void addAll(Collection<? extends E> collection, int startPos, boolean notify) {
         collection = filterElements(collection);
         int preSize = mElementList.size();
         startPos = startPos > preSize ? preSize : startPos;
@@ -201,7 +200,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      *
      * @param collection the E elements container.
      */
-    public void addAll(Collection<E> collection) {
+    public void addAll(Collection<? extends E> collection) {
         addAll(collection, true);
     }
 
@@ -211,9 +210,9 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      *                 to handle data set changed event.Note, if you add element
      *                 in the other thread except main thread, you should always set this is false.
      */
-    public void remove(int position, boolean notify) {
+    public E remove(int position, boolean notify) {
         if (!validatePosition(position))
-            return;
+            return null;
         E e = mElementList.remove(position);
         if (isInContentActionMode) {
             internalSetItemSelection(e, position, false, true);
@@ -221,6 +220,25 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         if (notify) {
             notifyItemRemoved(position);
         }
+        return e;
+    }
+
+    public E remove(E e, boolean notify) {
+        int position = mElementList.indexOf(e);
+        return remove(position, notify);
+    }
+
+    public E remove(E e) {
+        return remove(e, true);
+    }
+
+    public E remove(E pE, Comparator<E> pComparator) {
+        return remove(pE, pComparator, true);
+    }
+
+    public E remove(E pE, Comparator<E> pComparator, boolean notify) {
+        int position = findPosition(pE, pComparator);
+        return remove(position, notify);
     }
 
     void internalSetItemSelection(E e, int position, boolean selected, boolean notify) {
@@ -235,8 +253,8 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     /**
      * @param position the element' position you want removed.
      */
-    public void remove(int position) {
-        remove(position, true);
+    public E remove(int position) {
+        return remove(position, true);
     }
 
 
@@ -285,7 +303,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
     @Override
     public final void onBindViewHolder(VH holder, int position) {
         E e = mElementList.get(position);
-        holder.mPositionTag = e;
+        //holder.mPositionTag = e;
         realBindViewHolder(holder, position);
     }
 
@@ -379,6 +397,20 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         return set(e, comparator, true);
     }
 
+    public E set(E old, E newOne) {
+        return set(old, newOne, true);
+    }
+
+    public E set(E old, E newOne, boolean notify) {
+        int pos = mElementList.indexOf(old);
+        if (pos < 0 || pos >= mElementList.size())
+            return newOne;
+        E e = mElementList.set(pos, newOne);
+        if (notify)
+            notifyItemChanged(pos);
+        return e;
+    }
+
     /**
      * filter array by pass those null element.
      *
@@ -402,7 +434,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      * @param collection the collection want to filter.
      * @return new filtered without null element collection.
      */
-    private List<E> filterElements(Collection<E> collection) {
+    private List<E> filterElements(Collection<? extends E> collection) {
         List<E> list = Collections.emptyList();
         if (collection == null)
             return list;
@@ -477,7 +509,7 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      *                              in the other thread except main thread, you should always set this is false.
      * @param notifyAfterAllRemoved whether or not after remove all specify elements then notify DataObserver.
      */
-    public void removeItems(Collection<E> collection, boolean notify, boolean notifyAfterAllRemoved) {
+    public void removeItems(Collection<? extends E> collection, boolean notify, boolean notifyAfterAllRemoved) {
         collection = filterElements(collection);
         for (E e : collection) {
             int position = mElementList.indexOf(e);
@@ -517,8 +549,62 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
      *
      * @param collection the elements you want remove.
      */
-    public void removeItems(Collection<E> collection) {
+    public void removeItems(Collection<? extends E> collection) {
         removeItems(collection, true, false);
+    }
+
+    public int findPosition(E pE) {
+        return mElementList.indexOf(pE);
+    }
+
+    public int findPosition(E pE, Comparator<? super E> pComparator) {
+        return Collections.binarySearch(mElementList, pE, pComparator);
+    }
+
+    public int findPosition(Selector<E> pSelector) {
+        int position = -1;
+        for (int i = 0; i < mElementList.size(); i++) {
+            E lvE = mElementList.get(i);
+            if (pSelector.selected(lvE)) {
+                position = i;
+                break;
+            }
+        }
+        return position;
+    }
+
+
+    public void removeItems(Collection<? extends E> elements, Comparator<E> pComparator, boolean notify) {
+        removeItems(elements, pComparator, notify, true);
+    }
+
+    public void removeItems(Collection<? extends E> elements, Comparator<E> pComparator) {
+        removeItems(elements, pComparator, true, true);
+    }
+
+    public void removeItems(Collection<? extends E> elements, Comparator<E> pComparator, boolean notify, boolean notifyAfterAllRemoved) {
+        elements = filterElements(elements);
+        if (elements != null) {
+            for (E e : elements) {
+                int position = findPosition(e, pComparator);
+                if (position == -1)
+                    continue;
+                mElementList.remove(e);
+                if (isInContentActionMode) {
+                    internalSetItemSelection(e, position, false, false);
+                }
+                if (notify && !notifyAfterAllRemoved) {
+                    notifyItemRemoved(position);
+                }
+            }
+            if (notify) {
+                notifyItemCheckedRangeStateChanged(null, null, false);
+                if (notifyAfterAllRemoved) {
+                    notifyDataSetChanged();
+                }
+            }
+
+        }
     }
 
     /**
@@ -1000,6 +1086,10 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         return mElementList.get(position);
     }
 
+    public int getItemPosition(E e) {
+        return mElementList.indexOf(e);
+    }
+
 
     /**
      * this is used to handle view click event alone.
@@ -1051,9 +1141,13 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         void onItemsCheckStateChanged(int[] positions, boolean[] states);
     }
 
+    public interface Selector<T> {
+        public boolean selected(T t);
+    }
+
 
     /**
-     * the ViewHolder extends {@link android.support.v7.widget.RecyclerView.ViewHolder}
+     * the ViewHolder extends {@link RecyclerView.ViewHolder}
      *
      * @param <E> the data's type.
      */
@@ -1115,6 +1209,8 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
         SetterListener mSetterListener = null;
         private static final String TAG = "CAMViewHolder";
         //private final View mRootView;
+
+        @Deprecated
         E mPositionTag;
 
 
@@ -1158,7 +1254,8 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                 if (mSetterListener.listenClick(v))
                     return;
             }
-            int position = mAdapter.mElementList.indexOf(mPositionTag);
+//            int position = mAdapter.mElementList.indexOf(mPositionTag);
+            int position = getAdapterPosition();
             internalClick(v, position);
         }
 
@@ -1223,7 +1320,8 @@ public abstract class CAMRecyclerViewAdapter<E, VH extends CAMRecyclerViewAdapte
                     return false;
             }
 
-            int position = mAdapter.mElementList.indexOf(mPositionTag);
+//            int position = mAdapter.mElementList.indexOf(mPositionTag);
+            int position = getAdapterPosition();
 
             return internalLongClick(v, position);
         }

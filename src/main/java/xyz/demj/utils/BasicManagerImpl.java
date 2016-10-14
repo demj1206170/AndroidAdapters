@@ -3,8 +3,6 @@ package xyz.demj.utils;
 import java.util.Collection;
 import java.util.Map;
 
-import xyz.demj.utils.BasicManager;
-
 /**
  * Created by demj on 2016/5/15 0015.
  * Author: demj
