@@ -9,7 +9,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-import xyz.demj.smartacp.R;
+
 
 /**
  * Created by demj on 2016/5/3 0003.
